@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sophia's Vibe Check</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: 'Verdana', sans-serif;
+            /* FIX: Critical for iPad drawing */
+            touch-action: none;
+        }
+        #canvas1 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; }
+        #bg-text {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 15vw; font-weight: 900;
+            color: rgba(255, 255, 255, 0.08);
+            z-index: 1; pointer-events: none;
+            text-transform: uppercase; text-align: center; width: 100%;
+            transition: opacity 0.5s ease;
+        }
+        #hint {
+            position: absolute; bottom: 30px; width: 100%; text-align: center;
+            color: #666; font-size: 14px; pointer-events: none; z-index: 3;
+            font-family: monospace; animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+    </style>
+</head>
+<body>
+    <div id="bg-text">SOPHIA</div>
+    <div id="hint">Touch & Drag! ✨</div>
+    <canvas id="canvas1"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas1');
+        const ctx = canvas.getContext('2d');
+        const bgTextElement = document.getElementById('bg-text');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let particlesArray = [];
+        let floatingMessages = [];
+        let hue = 0;
+
+        const magicWords = ["Slay", "🔥", "Bestie", "Queen", "Vibe", "✨", "Iconic", "Coolest", "Goated", "💅", "10/10", "Glow"];
+        const bgMessages = ["SOPHIA", "THE BEST", "MAIN CHAR", "LEGEND", "BSF"];
+        let bgIndex = 0;
+
+        setInterval(() => {
+            bgIndex = (bgIndex + 1) % bgMessages.length;
+            bgTextElement.style.opacity = 0;
+            setTimeout(() => {
+                bgTextElement.innerText = bgMessages[bgIndex];
+                bgTextElement.style.opacity = 1;
+            }, 500);
+        }, 3000);
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        const mouse = { x: undefined, y: undefined };
+
+        // FIX: Universal Input Handler
+        function handleInput(e) {
+            if(e.cancelable) e.preventDefault();
+            if (e.type.includes('touch')) {
+                mouse.x = e.touches[0].clientX;
+                mouse.y = e.touches[0].clientY;
+            } else {
+                mouse.x = e.clientX;
+                mouse.y = e.clientY;
+            }
+            
+            for(let i = 0; i < 3; i++){
+                particlesArray.push(new Particle());
+            }
+            // Trigger text on tap or occasionally during drag
+            if(Math.random() < 0.10 || e.type === 'touchstart' || e.type === 'mousedown') {
+                floatingMessages.push(new FloatingText());
+            }
+        }
+
+        canvas.addEventListener('mousemove', handleInput);
+        canvas.addEventListener('mousedown', handleInput);
+        canvas.addEventListener('touchstart', handleInput, { passive: false });
+        canvas.addEventListener('touchmove', handleInput, { passive: false });
+
+        class Particle {
+            constructor(){
+                this.x = mouse.x; this.y = mouse.y;
+                this.size = Math.random() * 10 + 2;
+                this.speedX = Math.random() * 3 - 1.5;
+                this.speedY = Math.random() * 3 - 1.5;
+                this.color = 'hsl(' + hue + ', 100%, 50%)';
+            }
+            update(){
+                this.x += this.speedX; this.y += this.speedY;
+                if (this.size > 0.2) this.size -= 0.1;
+            }
+            draw(){
+                ctx.fillStyle = this.color; ctx.shadowBlur = 10; ctx.shadowColor = this.color;
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill(); ctx.shadowBlur = 0;
+            }
+        }
+
+        class FloatingText {
+            constructor(){
+                this.x = mouse.x; this.y = mouse.y;
+                this.text = magicWords[Math.floor(Math.random() * magicWords.length)];
+                this.size = Math.random() * 20 + 20;
+                this.speedY = -2; this.speedX = (Math.random() * 2) - 1;
+                this.opacity = 1; this.color = 'hsl(' + (hue + 180) + ', 100%, 70%)';
+            }
+            update(){ this.y += this.speedY; this.x += this.speedX; this.opacity -= 0.02; }
+            draw(){
+                ctx.save(); ctx.globalAlpha = this.opacity;
+                ctx.font = "bold " + this.size + "px Arial";
+                ctx.fillStyle = this.color; ctx.textAlign = "center";
+                ctx.fillText(this.text, this.x, this.y); ctx.restore();
+            }
+        }
+
+        function animate(){
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particlesArray.length; i++){
+                particlesArray[i].update(); particlesArray[i].draw();
+                if (particlesArray[i].size <= 0.3){ particlesArray.splice(i, 1); i--; }
+            }
+            for (let i = 0; i < floatingMessages.length; i++){
+                floatingMessages[i].update(); floatingMessages[i].draw();
+                if (floatingMessages[i].opacity <= 0){ floatingMessages.splice(i, 1); i--; }
+            }
+            hue += 2; requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+</body>
+</html>

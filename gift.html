@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sophia's Galaxy</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+            /* FIX: Disables scrolling completely so drawing works */
+            touch-action: none;
+        }
+        #canvas1 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; }
+        #bg-text {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 15vw; font-weight: 900;
+            color: rgba(255, 255, 255, 0.05);
+            z-index: 1; pointer-events: none;
+            text-transform: uppercase; letter-spacing: 10px;
+        }
+        #instruction {
+            position: absolute; bottom: 20px; width: 100%;
+            text-align: center; color: rgba(255, 255, 255, 0.5);
+            font-size: 1.2rem; pointer-events: none; z-index: 3;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+    </style>
+</head>
+<body>
+    <div id="bg-text">SOPHIA</div>
+    <div id="instruction">Touch & Drag the screen ✨</div>
+    <canvas id="canvas1"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas1');
+        const ctx = canvas.getContext('2d');
+        const bgText = document.getElementById('bg-text');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let particlesArray = [];
+        let hue = 0;
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        const mouse = { x: undefined, y: undefined };
+
+        // FIX: Universal Input Handler for Touch and Mouse
+        function handleInput(e) {
+            if(e.cancelable) e.preventDefault(); 
+            if (e.type.includes('touch')) {
+                mouse.x = e.touches[0].clientX;
+                mouse.y = e.touches[0].clientY;
+            } else {
+                mouse.x = e.clientX;
+                mouse.y = e.clientY;
+            }
+            for(let i = 0; i < 5; i++){
+                particlesArray.push(new Particle());
+            }
+        }
+
+        // FIX: Attach listeners with passive: false to block scrolling
+        canvas.addEventListener('mousemove', handleInput);
+        canvas.addEventListener('touchmove', handleInput, { passive: false });
+        canvas.addEventListener('touchstart', handleInput, { passive: false });
+
+        class Particle {
+            constructor(){
+                this.x = mouse.x;
+                this.y = mouse.y;
+                this.size = Math.random() * 15 + 1;
+                this.speedX = Math.random() * 3 - 1.5;
+                this.speedY = Math.random() * 3 - 1.5;
+                this.color = 'hsl(' + hue + ', 100%, 50%)';
+            }
+            update(){
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.size > 0.2) this.size -= 0.1;
+            }
+            draw(){
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function animate(){
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particlesArray.length; i++){
+                particlesArray[i].update();
+                particlesArray[i].draw();
+                if (particlesArray[i].size <= 0.3){
+                    particlesArray.splice(i, 1);
+                    i--;
+                }
+            }
+            hue += 2; 
+            bgText.style.color = 'hsla(' + hue + ', 100%, 50%, 0.1)';
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+</body>
+</html>
