@@ -3,114 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sophia's Galaxy</title>
+    <title>For Sophia! ✨</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-color: #ffe4e1;
+            --accent-color: #ff6b6b;
+            --text-color: #4a4a4a;
+        }
+
         body {
-            background: #000;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
-            font-family: 'Courier New', Courier, monospace;
-            /* FIX: Disables scrolling completely so drawing works */
-            touch-action: none;
+            /* FIX: Prevents double-tap zoom delay */
+            touch-action: manipulation; 
+            -webkit-user-select: none; /* Safari fix */
+            user-select: none;
         }
-        #canvas1 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; }
-        #bg-text {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 15vw; font-weight: 900;
-            color: rgba(255, 255, 255, 0.05);
-            z-index: 1; pointer-events: none;
-            text-transform: uppercase; letter-spacing: 10px;
+
+        #container {
+            text-align: center;
+            z-index: 10;
         }
-        #instruction {
-            position: absolute; bottom: 20px; width: 100%;
-            text-align: center; color: rgba(255, 255, 255, 0.5);
-            font-size: 1.2rem; pointer-events: none; z-index: 3;
-            animation: pulse 2s infinite;
+
+        h1 {
+            color: var(--accent-color);
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
         }
-        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+
+        .box {
+            font-size: 100px;
+            cursor: pointer;
+            transition: transform 0.1s; /* Faster animation for rapid tapping */
+            display: inline-block;
+        }
+
+        .box:active {
+            transform: scale(0.9) rotate(5deg);
+        }
+
+        #message-display {
+            margin-top: 30px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--text-color);
+            min-height: 60px;
+            padding: 0 20px;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .heart {
+            position: absolute;
+            font-size: 2rem;
+            pointer-events: none;
+            z-index: 1;
+            animation: floatUp 3s ease-out forwards;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(-100vh) scale(1.5) rotate(360deg); opacity: 0; }
+        }
+
+        .instruction {
+            position: absolute;
+            bottom: 50px;
+            color: #888;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
-    <div id="bg-text">SOPHIA</div>
-    <div id="instruction">Touch & Drag the screen ✨</div>
-    <canvas id="canvas1"></canvas>
+
+    <div id="container">
+        <h1>Hey Sophia! ✨</h1>
+        <div class="box" id="giftBox">🎁</div>
+        <div id="message-display">Tap the gift!</div>
+    </div>
+
+    <div class="instruction">Tap the box</div>
 
     <script>
-        const canvas = document.getElementById('canvas1');
-        const ctx = canvas.getContext('2d');
-        const bgText = document.getElementById('bg-text');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        const messages = [
+            "You're the coolest person I know! 🕶️",
+            "Sophia = The G.O.A.T 🐐",
+            "Always vibing, never boring! ✨",
+            "Thanks for being an awesome bestie! 💖",
+            "You have the best taste in literally everything. 💅",
+            "Literal main character energy! 🎬",
+            "If being cool was a crime, you'd be in jail. 🚔",
+            "Sending you 100% good vibes today! 🌈"
+        ];
 
-        let particlesArray = [];
-        let hue = 0;
+        function createHeart(x, y) {
+            const heart = document.createElement('div');
+            heart.classList.add('heart');
+            heart.innerHTML = ['❤️', '💖', '✨', '⭐', '🎈'][Math.floor(Math.random() * 5)];
+            heart.style.left = x + 'px';
+            heart.style.top = y + 'px';
+            const drift = (Math.random() - 0.5) * 200;
+            heart.style.setProperty('--drift', `${drift}px`);
+            document.body.appendChild(heart);
+            setTimeout(() => heart.remove(), 3000);
+        }
 
-        window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        });
+        function openSurprise(e) {
+            // FIX: Prevent double firing on some touch devices
+            if (e && e.cancelable) e.preventDefault();
 
-        const mouse = { x: undefined, y: undefined };
+            const display = document.getElementById('message-display');
+            const box = document.getElementById('giftBox');
+            
+            // Animation reset trick
+            box.style.transform = "scale(1.1) rotate(10deg)";
+            setTimeout(() => box.style.transform = "scale(1) rotate(0deg)", 100);
 
-        // FIX: Universal Input Handler for Touch and Mouse
-        function handleInput(e) {
-            if(e.cancelable) e.preventDefault(); 
-            if (e.type.includes('touch')) {
-                mouse.x = e.touches[0].clientX;
-                mouse.y = e.touches[0].clientY;
-            } else {
-                mouse.x = e.clientX;
-                mouse.y = e.clientY;
-            }
-            for(let i = 0; i < 5; i++){
-                particlesArray.push(new Particle());
+            // Change message
+            const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+            display.innerText = randomMsg;
+            display.style.opacity = "1";
+
+            // Explosion center coordinates
+            const rect = box.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            // Heart burst
+            for (let i = 0; i < 15; i++) {
+                setTimeout(() => {
+                    const x = centerX + (Math.random() - 0.5) * 100;
+                    const y = centerY + (Math.random() - 0.5) * 100;
+                    createHeart(x, y);
+                }, i * 30);
             }
         }
 
-        // FIX: Attach listeners with passive: false to block scrolling
-        canvas.addEventListener('mousemove', handleInput);
-        canvas.addEventListener('touchmove', handleInput, { passive: false });
-        canvas.addEventListener('touchstart', handleInput, { passive: false });
-
-        class Particle {
-            constructor(){
-                this.x = mouse.x;
-                this.y = mouse.y;
-                this.size = Math.random() * 15 + 1;
-                this.speedX = Math.random() * 3 - 1.5;
-                this.speedY = Math.random() * 3 - 1.5;
-                this.color = 'hsl(' + hue + ', 100%, 50%)';
-            }
-            update(){
-                this.x += this.speedX;
-                this.y += this.speedY;
-                if (this.size > 0.2) this.size -= 0.1;
-            }
-            draw(){
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        function animate(){
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            for (let i = 0; i < particlesArray.length; i++){
-                particlesArray[i].update();
-                particlesArray[i].draw();
-                if (particlesArray[i].size <= 0.3){
-                    particlesArray.splice(i, 1);
-                    i--;
-                }
-            }
-            hue += 2; 
-            bgText.style.color = 'hsla(' + hue + ', 100%, 50%, 0.1)';
-            requestAnimationFrame(animate);
-        }
-        animate();
+        // FIX: Add both click and touchstart for instant response
+        const boxBtn = document.getElementById('giftBox');
+        boxBtn.addEventListener('click', openSurprise);
+        boxBtn.addEventListener('touchstart', openSurprise, { passive: false });
     </script>
 </body>
 </html>
